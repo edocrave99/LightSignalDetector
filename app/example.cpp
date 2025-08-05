@@ -37,10 +37,10 @@ int main(void) {
     unsigned int height = 1080;
 
     // Definizione ROI ---
-    const int ROI_X = 1613; // Colonna iniziale della ROI
-    const int ROI_Y = 657; // Riga iniziale della ROI
-    const int ROI_WIDTH = 76; // Larghezza della ROI
-    const int ROI_HEIGHT = 141; // Altezza della ROI 
+    const int ROI_X = 1702; // Colonna iniziale della ROI
+    const int ROI_Y = 640; // Riga iniziale della ROI
+    const int ROI_WIDTH = 81; // Larghezza della ROI
+    const int ROI_HEIGHT = 154; // Altezza della ROI 
 
     // Aggiungi soglie minime di pixel per considerare un colore "acceso"
     // Questo valore dovrà essere calibrato in base alle tue condizioni di luce e dimensioni ROI.
@@ -180,7 +180,7 @@ int main(void) {
         }
 
         /*
-        // ALTERNATIVA AL PUNTO 7
+        // ALTERNATIVA AL PUNTO 7.
         int max_pixels = red_pixels;
         std::string state = "RED";
         if (yellow_pixels > max_pixels) {

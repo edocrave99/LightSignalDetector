@@ -17,12 +17,7 @@
               "access": "admin",
               "name": "settings",
               "type": "fastCgi"
-            },
-            {
-              "access": "viewer",
-              "name": "get_status",
-              "type": "fastCgi"
-            }
+            }           
           ]
         }
     }
