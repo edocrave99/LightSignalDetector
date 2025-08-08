@@ -11,14 +11,7 @@
             "version": "1.0.0"
         },
         "configuration": {
-          "settingPage": "index.html",
-          "httpConfig": [
-            {
-              "access": "admin",
-              "name": "settings",
-              "type": "fastCgi"
-            }           
-          ]
+          "settingPage": "index.html"
         }
     }
 }

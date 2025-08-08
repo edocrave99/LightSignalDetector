@@ -7,7 +7,18 @@
         body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #333; }
         .video-container { position: relative; width: 800px; border: 2px solid #555; }
         #video-stream { display: block; width: 100%; height: auto; }
-        #status-overlay { position: absolute; top: 20px; left: 20px; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 10px 15px; font-size: 24px; font-weight: bold; border: 2px solid white; }
+        #status-overlay { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background-color: rgba(0, 0, 0, 0.7); 
+            color: white; 
+            padding: 10px 15px; 
+            font-size: 24px; 
+            font-weight: bold; 
+            border: 2px solid white;
+            transition: border-color 0.5s ease;
+        }
     </style>
 </head>
 <body>
@@ -17,29 +28,50 @@
     </div>
 
     <script>
+        // Selezioniamo l'elemento dell'overlay per poterlo modificare dopo
+        const overlay = document.getElementById('status-overlay');
+
+        // Questa è la funzione che viene eseguita ogni secondo
         async function updateStatus() {
             try {
-                // La richiesta ora punta al nostro script CGI locale sulla telecamera!
-                // Usiamo un trucco per evitare la cache del browser aggiungendo l'ora corrente.
-                const response = await fetch('/axis-cgi/get_status.cgi?t=' + new Date().getTime());
-                const data = await response.json();
+                // 1. RICHIESTA DEL FILE DI STATO
+                // Usiamo la funzione 'fetch' per chiedere al server il file 'current_state.txt'.
+                // Aggiungiamo '?t=' seguito dall'ora attuale: è un trucco per forzare
+                // il browser a non usare una versione vecchia del file salvata nella cache.
+                const response = await fetch('current_state.txt?t=' + new Date().getTime());
+                
+                // Se la risposta non è "OK" (es. file non ancora creato), genera un errore.
+                if (!response.ok) {
+                    throw new Error('File non trovato o errore di rete');
+                }
 
-                const overlay = document.getElementById('status-overlay');
-                overlay.textContent = data.state;
-
-                // Logica per cambiare il colore del bordo
+                // 2. LETTURA DELLA RISPOSTA
+                // Leggiamo il contenuto del file come semplice testo. La variabile 'newState'
+                // conterrà la stringa letta (es. "RED", "GREEN", etc.).
+                const newState = await response.text();
+                
+                // 3. AGGIORNAMENTO DELL'INTERFACCIA
+                // Aggiorniamo sia il testo che il colore del bordo dell'overlay.
+                overlay.textContent = newState;
                 let borderColor = 'white';
-                if (data.state === 'RED') borderColor = 'red';
-                if (data.state === 'GREEN') borderColor = 'lime';
-                if (data.state === 'YELLOW') borderColor = 'yellow';
+                if (newState === 'RED') borderColor = 'red';
+                if (newState === 'GREEN') borderColor = 'lime';
+                if (newState === 'YELLOW') borderColor = 'yellow';
                 overlay.style.borderColor = borderColor;
 
             } catch (error) {
-                console.error("Errore nel recuperare lo stato:", error);
+                // Se qualcosa va storto durante la richiesta, lo scriviamo nella console del browser
+                // e mostriamo un messaggio di errore generico.
+                console.error("Errore nell'aggiornare lo stato:", error);
+                overlay.textContent = "Errore";
             }
         }
 
-        setInterval(updateStatus, 1000); // Aggiorna ogni secondo
+        // 4. AVVIO DEL POLLING
+        // setInterval è un timer di JavaScript. Dice al browser:
+        // "Esegui la funzione 'updateStatus' ogni 1000 millisecondi (cioè 1 secondo)".
+        // Questo crea un ciclo infinito di richieste che mantiene lo stato aggiornato.
+        setInterval(updateStatus, 1000);
     </script>
 </body>
 </html>
