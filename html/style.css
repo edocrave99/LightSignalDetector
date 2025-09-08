@@ -1,0 +1,211 @@
+/* style.css */
+
+/* Stili Globali e Reset Semplice */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 2em;
+    background-color: #f0f2f5;
+    color: #333;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+h1, h2, h3 {
+    color: #1d2129;
+    margin-top: 0;
+}
+
+p {
+    color: #606770;
+    margin-bottom: 1em;
+}
+
+/* Contenitori Principali (Card Style) */
+.card {
+    background-color: white;
+    padding: 2.5em;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Stile per Select e Input Generici */
+select, input[type="number"] {
+    font-size: 1em;
+    padding: 0.8em 0.8em;
+    border-radius: 6px;
+    border: 1px solid #dddfe2;
+    width: auto; /* Permette dimensioni individuali */
+    box-sizing: border-box;
+    margin-bottom: 0.5em;
+    min-width: 90px; /* Larghezza minima aumentata */
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: auto;
+    opacity: 1;
+}
+
+/* Stile per i Bottoni */
+button {
+    font-size: 1em;
+    padding: 0.8em 1.2em;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+}
+
+button.primary {
+    background-color: #1877f2;
+    color: white;
+}
+button.primary:hover {
+    background-color: #166fe5;
+}
+
+button.secondary {
+    background-color: #e4e6eb;
+    color: #333;
+}
+button.secondary:hover {
+    background-color: #d8dbdf;
+}
+
+button:disabled {
+    background-color: #e4e6eb;
+    color: #bcc0c4;
+    cursor: not-allowed;
+}
+
+/* Specifico per index.html */
+.index-page-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.index-page-layout .card {
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+}
+.index-page-layout select {
+    margin-bottom: 1.5em;
+    width: 100%;
+}
+
+/* Specifico per config.html */
+.config-page-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2em;
+    align-items: center;
+}
+.config-controls-card {
+    max-width: 600px;
+    width: 100%;
+    padding: 1.5em;
+}
+.config-controls-card h3 {
+    margin-bottom: 1em;
+    border-bottom: 1px solid #dddfe2;
+    padding-bottom: 0.5em;
+}
+.form-group {
+    margin-bottom: 1.5em;
+}
+input.coords {
+    width: 90px; /* Larghezza aumentata */
+    padding: 0.5em;
+    margin-right: 0.5em;
+}
+span.coords-display {
+    display: inline-block;
+    width: 40px;
+    text-align: right;
+    margin-right: 0.5em;
+    font-weight: bold;
+}
+.light-control {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8em;
+}
+.light-control button {
+    margin-left: 0.8em;
+    margin-right: 0.8em;
+    padding: 0.6em 1em;
+    font-size: 0.9em;
+}
+.light-control label {
+    min-width: 50px;
+}
+
+#video-stream-wrapper {
+    position: relative;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background-color: #e4e6eb;
+    max-width: 100%;
+    height: auto;
+}
+#video_stream {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+#status {
+    margin-top: 1.5em;
+    font-weight: bold;
+    color: #606770;
+    text-align: center;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    margin-top: 2em;
+    justify-content: center;
+}
+.button-group button {
+    flex-grow: 1;
+    min-width: 150px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 1em;
+    }
+    .card, .config-controls-card {
+        padding: 1.5em;
+    }
+    .config-page-layout {
+        gap: 1.5em;
+    }
+    .button-group {
+        flex-direction: column;
+        gap: 0.8em;
+    }
+    .button-group button {
+        width: 100%;
+    }
+}

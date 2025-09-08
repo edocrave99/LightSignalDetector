@@ -2,76 +2,208 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Live Camera Stream</title>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #333; }
-        .video-container { position: relative; width: 800px; border: 2px solid #555; }
-        #video-stream { display: block; width: 100%; height: auto; }
-        #status-overlay { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            background-color: rgba(0, 0, 0, 0.7); 
-            color: white; 
-            padding: 10px 15px; 
-            font-size: 24px; 
-            font-weight: bold; 
-            border: 2px solid white;
-            transition: border-color 0.5s ease;
-        }
-    </style>
+    <title>Configurazione Rilevamento</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="video-container">
-        <img id="video-stream" src="/axis-cgi/mjpg/video.cgi" alt="Live Stream">
-        <div id="status-overlay">Caricamento...</div>
+<body class="config-page-layout">
+    <div class="card config-controls-card">
+        <h3>ROI Principale</h3>
+        <div class="form-group">
+            X: <input type="number" id="master_roi_x" class="coords">
+            Y: <input type="number" id="master_roi_y" class="coords">
+            W: <input type="number" id="master_roi_width" class="coords">
+            H: <input type="number" id="master_roi_height" class="coords">
+        </div>
+        
+        <h3>Luci</h3>
+        <div class="form-group">
+            Raggio: <input type="number" id="lamp_radius" class="coords"><br><br>
+            <div class="light-control">
+                <label>Rosso:</label>
+                <button type="button" onclick="setMode('red')" class="secondary">Posiziona</button>
+                X:<span id="red_x_span" class="coords-display"></span>
+                Y:<span id="red_y_span" class="coords-display"></span>
+            </div>
+            <div class="light-control">
+                <label>Giallo:</label>
+                <button type="button" onclick="setMode('yellow')" class="secondary">Posiziona</button>
+                X:<span id="yellow_x_span" class="coords-display"></span>
+                Y:<span id="yellow_y_span" class="coords-display"></span>
+            </div>
+            <div class="light-control">
+                <label>Verde:</label>
+                <button type="button" onclick="setMode('green')" class="secondary">Posiziona</button>
+                X:<span id="green_x_span" class="coords-display"></span>
+                Y:<span id="green_y_span" class="coords-display"></span>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="toggleCanvasBtn" class="secondary">Nascondi Aree</button>
+            <button id="saveBtn" onclick="saveConfig()" class="primary">Salva Configurazione</button>
+        </div>
+        
+        <p id="status"></p>
+    </div>
+
+    <div id="video-stream-wrapper">
+        <img id="video_stream" alt="Caricamento stream...">
+        <canvas id="canvas"></canvas>
     </div>
 
     <script>
-        // Selezioniamo l'elemento dell'overlay per poterlo modificare dopo
-        const overlay = document.getElementById('status-overlay');
+        const canvas = document.getElementById('canvas');
+        const videoStream = document.getElementById('video_stream');
+        const ctx = canvas.getContext('2d');
+        const toggleCanvasBtn = document.getElementById('toggleCanvasBtn');
 
-        // Questa è la funzione che viene eseguita ogni secondo
-        async function updateStatus() {
+        // Variabili per il disegno
+        let roi = { x: 100, y: 100, w: 200, h: 400 };
+        let lights = { red: { x: 100, y: 50 }, yellow: { x: 100, y: 150 }, green: { x: 100, y: 250 } };
+        let radius = 30;
+        let mode = 'roi';
+        let isDrawing = false;
+        let startX, startY;
+
+        async function initializeApp() {
+            const videoStreamWrapper = document.getElementById('video-stream-wrapper');
+            const fixedWidth = 1280;
+            const fixedHeight = 720;
+
+            videoStreamWrapper.style.width = `${fixedWidth}px`;
+            videoStreamWrapper.style.height = `${fixedHeight}px`;
+            canvas.width = fixedWidth;
+            canvas.height = fixedHeight;
+
             try {
-                // 1. RICHIESTA DEL FILE DI STATO
-                // Usiamo la funzione 'fetch' per chiedere al server il file 'current_state.txt'.
-                // Aggiungiamo '?t=' seguito dall'ora attuale: è un trucco per forzare
-                // il browser a non usare una versione vecchia del file salvata nella cache.
-                const response = await fetch('current_state.txt?t=' + new Date().getTime());
+                const configUrl = '/local/opencv_app/config.json?' + new Date().getTime();
+                const response = await fetch(configUrl);
+                if (!response.ok) throw new Error('Config file not found');
+                const config = await response.json();
                 
-                // Se la risposta non è "OK" (es. file non ancora creato), genera un errore.
-                if (!response.ok) {
-                    throw new Error('File non trovato o errore di rete');
-                }
+                roi = { x: config.master_roi_x, y: config.master_roi_y, w: config.master_roi_width, h: config.master_roi_height };
+                lights = { red: { x: config.red_x, y: config.red_y }, yellow: { x: config.yellow_x, y: config.yellow_y }, green: { x: config.green_x, y: config.green_y } };
+                radius = config.lamp_radius;
 
-                // 2. LETTURA DELLA RISPOSTA
-                // Leggiamo il contenuto del file come semplice testo. La variabile 'newState'
-                // conterrà la stringa letta (es. "RED", "GREEN", etc.).
-                const newState = await response.text();
-                
-                // 3. AGGIORNAMENTO DELL'INTERFACCIA
-                // Aggiorniamo sia il testo che il colore del bordo dell'overlay.
-                overlay.textContent = newState;
-                let borderColor = 'white';
-                if (newState === 'RED') borderColor = 'red';
-                if (newState === 'GREEN') borderColor = 'lime';
-                if (newState === 'YELLOW') borderColor = 'yellow';
-                overlay.style.borderColor = borderColor;
-
+                document.getElementById('status').innerText = 'Configurazione esistente caricata.';
             } catch (error) {
-                // Se qualcosa va storto durante la richiesta, lo scriviamo nella console del browser
-                // e mostriamo un messaggio di errore generico.
-                console.error("Errore nell'aggiornare lo stato:", error);
-                overlay.textContent = "Errore";
+                document.getElementById('status').innerText = 'Nessuna configurazione trovata. Disegna le aree e salva.';
+            } finally {
+                videoStream.src = `http://${window.location.hostname}:8080`;
+                draw();
+            }
+        }
+        
+        async function saveConfig() {
+            // Rimuove i dati di risoluzione, non più necessari
+            const data = {
+                master_roi_x: parseInt(document.getElementById('master_roi_x').value),
+                master_roi_y: parseInt(document.getElementById('master_roi_y').value),
+                master_roi_width: parseInt(document.getElementById('master_roi_width').value),
+                master_roi_height: parseInt(document.getElementById('master_roi_height').value),
+                red_x: lights.red.x, red_y: lights.red.y,
+                yellow_x: lights.yellow.x, yellow_y: lights.yellow.y,
+                green_x: lights.green.x, green_y: lights.green.y,
+                lamp_radius: parseInt(document.getElementById('lamp_radius').value)
+            };
+            
+            const url = `http://${window.location.hostname}:8080/save_config`;
+
+            try {
+                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                alert("Configurazione salvata! Le modifiche sono state applicate.");
+                window.location.reload();
+            } catch (error) {
+                console.error("Errore durante il salvataggio:", error);
+                alert('ERRORE: Impossibile salvare la configurazione.');
             }
         }
 
-        // 4. AVVIO DEL POLLING
-        // setInterval è un timer di JavaScript. Dice al browser:
-        // "Esegui la funzione 'updateStatus' ogni 1000 millisecondi (cioè 1 secondo)".
-        // Questo crea un ciclo infinito di richieste che mantiene lo stato aggiornato.
-        setInterval(updateStatus, 1000);
+        // --- IL RESTO DELLO SCRIPT (DISEGNO, EVENTI MOUSE) RIMANE INVARIATO ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'blue'; ctx.lineWidth = 2;
+            ctx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+            const r = radius;
+            ctx.strokeStyle = 'red'; ctx.beginPath(); ctx.arc(roi.x + lights.red.x, roi.y + lights.red.y, r, 0, 2 * Math.PI); ctx.stroke();
+            ctx.strokeStyle = 'yellow'; ctx.beginPath(); ctx.arc(roi.x + lights.yellow.x, roi.y + lights.yellow.y, r, 0, 2 * Math.PI); ctx.stroke();
+            ctx.strokeStyle = 'lime'; ctx.beginPath(); ctx.arc(roi.x + lights.green.x, roi.y + lights.green.y, r, 0, 2 * Math.PI); ctx.stroke();
+            updateForm();
+        }
+        function updateForm() {
+            document.getElementById('master_roi_x').value = Math.round(roi.x);
+            document.getElementById('master_roi_y').value = Math.round(roi.y);
+            document.getElementById('master_roi_width').value = Math.round(roi.w);
+            document.getElementById('master_roi_height').value = Math.round(roi.h);
+            document.getElementById('lamp_radius').value = radius;
+            document.getElementById('red_x_span').innerText = lights.red.x;
+            document.getElementById('red_y_span').innerText = lights.red.y;
+            document.getElementById('yellow_x_span').innerText = lights.yellow.x;
+            document.getElementById('yellow_y_span').innerText = lights.yellow.y;
+            document.getElementById('green_x_span').innerText = lights.green.x;
+            document.getElementById('green_y_span').innerText = lights.green.y;
+        }
+        function updateRoiFromInputs() {
+            roi.x = parseInt(document.getElementById('master_roi_x').value) || 0;
+            roi.y = parseInt(document.getElementById('master_roi_y').value) || 0;
+            roi.w = parseInt(document.getElementById('master_roi_width').value) || 0;
+            roi.h = parseInt(document.getElementById('master_roi_height').value) || 0;
+            draw();
+        }
+        function updateRadiusFromInput() {
+            radius = parseInt(document.getElementById('lamp_radius').value) || 0;
+            draw();
+        }
+        toggleCanvasBtn.addEventListener('click', () => {
+            if (canvas.style.display === 'none') { canvas.style.display = 'block'; toggleCanvasBtn.innerText = 'Nascondi Aree'; }
+            else { canvas.style.display = 'none'; toggleCanvasBtn.innerText = 'Mostra Aree'; }
+        });
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('status').innerText = `Modalità: posiziona luce ${newMode}.`;
+        }
+        canvas.onmousedown = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+            if (mode === 'roi') {
+                isDrawing = true; startX = x; startY = y;
+                roi.x = x; roi.y = y; roi.w = 0; roi.h = 0;
+            } else if (['red', 'yellow', 'green'].includes(mode)) {
+                if (x >= roi.x && x <= roi.x + roi.w && y >= roi.y && y <= roi.y + roi.h) {
+                    lights[mode].x = x - roi.x;
+                    lights[mode].y = y - roi.y;
+                    draw();
+                    mode = 'roi';
+                    document.getElementById('status').innerText = 'Posiziona la ROI o clicca un bottone "Posiziona luce".';
+                } else { alert('Posiziona la luce DENTRO la ROI blu.'); }
+            }
+        };
+        canvas.onmousemove = (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+            roi.w = x - startX;
+            roi.h = y - startY;
+            draw();
+        };
+        canvas.onmouseup = () => {
+            isDrawing = false;
+            if (roi.w < 0) { roi.x += roi.w; roi.w = Math.abs(roi.w); }
+            if (roi.h < 0) { roi.y += roi.h; roi.h = Math.abs(roi.h); }
+            draw();
+        };
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        document.getElementById('master_roi_x').addEventListener('input', updateRoiFromInputs);
+        document.getElementById('master_roi_y').addEventListener('input', updateRoiFromInputs);
+        document.getElementById('master_roi_width').addEventListener('input', updateRoiFromInputs);
+        document.getElementById('master_roi_height').addEventListener('input', updateRoiFromInputs);
+        document.getElementById('lamp_radius').addEventListener('input', updateRadiusFromInput);
     </script>
 </body>
 </html>
