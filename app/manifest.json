@@ -1,9 +1,9 @@
 {
-    "schemaVersion": "1.7.3",
+    "schemaVersion": "1.7.4",
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "opencv_example",
-            "appName": "opencv_app",
+            "friendlyName": "Traffic Light Detector",
+            "appName": "tld",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",
@@ -11,7 +11,14 @@
             "version": "1.0.0"
         },
         "configuration": {
-          "settingPage": "index.html"
+            "settingPage": "index.html",
+            "reverseProxy": [
+                {
+                    "apiPath": "api",
+                    "target": "http://localhost:8080",
+                    "access": "admin"
+                }
+            ]
         }
     }
 }

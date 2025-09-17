@@ -1,4 +1,4 @@
-PROGS = opencv_app
+PROGS = tld
 OBJECTS = $(wildcard *.cpp)
 
 PKGS = gio-2.0 gio-unix-2.0 vdostream

@@ -5,97 +5,162 @@
     <title>Configurazione Rilevamento</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="config-page-layout">
-    <div class="card config-controls-card">
-        <h3>ROI Principale</h3>
-        <div class="form-group">
-            X: <input type="number" id="master_roi_x" class="coords">
-            Y: <input type="number" id="master_roi_y" class="coords">
-            W: <input type="number" id="master_roi_width" class="coords">
-            H: <input type="number" id="master_roi_height" class="coords">
-        </div>
+<body>
+    <div class="main-container">
         
-        <h3>Luci</h3>
-        <div class="form-group">
-            Raggio: <input type="number" id="lamp_radius" class="coords"><br><br>
-            <div class="light-control">
-                <label>Rosso:</label>
-                <button type="button" onclick="setMode('red')" class="secondary">Posiziona</button>
-                X:<span id="red_x_span" class="coords-display"></span>
-                Y:<span id="red_y_span" class="coords-display"></span>
-            </div>
-            <div class="light-control">
-                <label>Giallo:</label>
-                <button type="button" onclick="setMode('yellow')" class="secondary">Posiziona</button>
-                X:<span id="yellow_x_span" class="coords-display"></span>
-                Y:<span id="yellow_y_span" class="coords-display"></span>
-            </div>
-            <div class="light-control">
-                <label>Verde:</label>
-                <button type="button" onclick="setMode('green')" class="secondary">Posiziona</button>
-                X:<span id="green_x_span" class="coords-display"></span>
-                Y:<span id="green_y_span" class="coords-display"></span>
-            </div>
+        <div id="video-stream-wrapper">
+            <img id="video_stream" alt="Caricamento stream...">
+            <canvas id="canvas"></canvas>
+            <button id="fullscreenBtn" title="Schermo intero">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                </svg>
+            </button>
         </div>
-        
-        <div class="button-group">
-            <button id="toggleCanvasBtn" class="secondary">Nascondi Aree</button>
-            <button id="saveBtn" onclick="saveConfig()" class="primary">Salva Configurazione</button>
-        </div>
-        
-        <p id="status"></p>
-    </div>
 
-    <div id="video-stream-wrapper">
-        <img id="video_stream" alt="Caricamento stream...">
-        <canvas id="canvas"></canvas>
+        <div class="config-controls-card">
+            <h3>Regione di interesse</h3>
+            <div class="form-group">
+                X: <input type="number" id="master_roi_x" class="coords" min="0">
+                Y: <input type="number" id="master_roi_y" class="coords" min="0">
+                W: <input type="number" id="master_roi_width" class="coords" min="1">
+                H: <input type="number" id="master_roi_height" class="coords" min="1">
+            </div>
+            
+            <h3>Luci</h3>
+            <div class="form-group">
+                Raggio: <input type="number" id="lamp_radius" class="coords" min="1"><br>
+                <div style="margin-top: 10px;">
+                    Soglia Luminosità: <input type="number" id="min_brightness_threshold" class="coords" min="1">
+                </div>
+                <br>
+                <div class="light-control">
+                    <label>Rosso:</label>
+                    <button type="button" onclick="setMode('red')" class="secondary">Posiziona</button>
+                    X:<span id="red_x_span" class="coords-display"></span>
+                    Y:<span id="red_y_span" class="coords-display"></span>
+                </div>
+                <div class="light-control">
+                    <label>Giallo:</label>
+                    <button type="button" onclick="setMode('yellow')" class="secondary">Posiziona</button>
+                    X:<span id="yellow_x_span" class="coords-display"></span>
+                    Y:<span id="yellow_y_span" class="coords-display"></span>
+                </div>
+                <div class="light-control">
+                    <label>Verde:</label>
+                    <button type="button" onclick="setMode('green')" class="secondary">Posiziona</button>
+                    X:<span id="green_x_span" class="coords-display"></span>
+                    Y:<span id="green_y_span" class="coords-display"></span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="toggleCanvasBtn" class="secondary">Nascondi Aree</button>
+                <button id="saveBtn" class="primary">Salva Configurazione</button>
+            </div>
+            
+            <p id="status"></p>
+        </div>
     </div>
 
     <script>
+        /**
+         * @file Logica del front-end per l'interfaccia di configurazione.
+         * @summary Questo script gestisce l'interattività della pagina, permettendo all'utente di
+         * definire visualmente le aree di interesse (ROI) su un flusso video e di salvare
+         * la configurazione sul server.
+         *
+         * Funzionalità principali:
+         * 1.  **Inizializzazione**: Carica la configurazione corrente da 'config.json' e avvia lo stream video.
+         * 2.  **Disegno Interattivo**: Gestisce il disegno del rettangolo della ROI e il posizionamento
+         * dei cerchi per le luci tramite il mouse sul canvas.
+         * 3.  **Sincronizzazione Stato**: Mantiene sincronizzati i dati (coordinate, raggio) tra le variabili
+         * JavaScript, i disegni sul canvas e i valori nei campi del modulo.
+         * 4.  **Comunicazione Backend**: Invia la nuova configurazione in formato JSON all'API C++
+         * per il salvataggio.
+         * 5.  **Gestione UI**: Controlla funzionalità secondarie come la modalità a schermo intero e
+         * la visibilità del canvas di disegno.
+         */
+
+        // --- INIZIALIZZAZIONE E VARIABILI GLOBALI ---
+
         const canvas = document.getElementById('canvas');
         const videoStream = document.getElementById('video_stream');
         const ctx = canvas.getContext('2d');
         const toggleCanvasBtn = document.getElementById('toggleCanvasBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const videoWrapper = document.getElementById('video-stream-wrapper');
+        const saveBtn = document.getElementById('saveBtn'); // Riferimento al bottone Salva
 
-        // Variabili per il disegno
+        // Oggetti che mantengono lo stato della configurazione corrente.
+        // Vengono inizializzati con valori di default e poi aggiornati con i dati caricati dal server.
         let roi = { x: 100, y: 100, w: 200, h: 400 };
-        let lights = { red: { x: 100, y: 50 }, yellow: { x: 100, y: 150 }, green: { x: 100, y: 250 } };
+        let lights = {
+            red: { x: 100, y: 50 },
+            yellow: { x: 100, y: 150 },
+            green: { x: 100, y: 250 }
+        };
         let radius = 30;
-        let mode = 'roi';
-        let isDrawing = false;
-        let startX, startY;
+        let minBrightnessThreshold = 80;
 
+        // Variabili per la gestione dell'interazione dell'utente con il canvas.
+        let mode = 'roi'; // Definisce l'azione corrente: 'roi', 'red', 'yellow', 'green'.
+        let isDrawing = false; // Flag per tracciare se il pulsante del mouse è premuto.
+        let startX, startY; // Coordinate iniziali del mouse quando si inizia a disegnare.
+
+        // --- FUNZIONI DI COMUNICAZIONE CON IL BACKEND ---
+
+        /**
+         * @brief Inizializza l'applicazione al caricamento della pagina.
+         * Imposta la risoluzione fissa del canvas, carica la configurazione
+         * esistente e avvia lo stream video.
+         */
         async function initializeApp() {
-            const videoStreamWrapper = document.getElementById('video-stream-wrapper');
-            const fixedWidth = 1280;
-            const fixedHeight = 720;
-
-            videoStreamWrapper.style.width = `${fixedWidth}px`;
-            videoStreamWrapper.style.height = `${fixedHeight}px`;
-            canvas.width = fixedWidth;
-            canvas.height = fixedHeight;
+            // La risoluzione interna del canvas viene fissata a 1280x720 per corrispondere
+            // a quella dello stream video del backend. Questo è FONDAMENTALE per garantire
+            // che le coordinate inviate al C++ siano corrette, indipendentemente
+            // dalla dimensione con cui il player video viene visualizzato nella pagina.
+            canvas.width = 1280;
+            canvas.height = 720;
 
             try {
-                const configUrl = '/local/opencv_app/config.json?' + new Date().getTime();
+                // Aggiunge un timestamp alla richiesta per prevenire che il browser
+                // carichi una versione vecchia del file JSON dalla cache.
+                const configUrl = 'config.json?' + new Date().getTime();
                 const response = await fetch(configUrl);
-                if (!response.ok) throw new Error('Config file not found');
-                const config = await response.json();
+                if (!response.ok) throw new Error('File di configurazione non trovato o non raggiungibile.');
                 
+                const config = await response.json();
+            
+                // Popola le variabili di stato con i dati caricati dal file.
                 roi = { x: config.master_roi_x, y: config.master_roi_y, w: config.master_roi_width, h: config.master_roi_height };
                 lights = { red: { x: config.red_x, y: config.red_y }, yellow: { x: config.yellow_x, y: config.yellow_y }, green: { x: config.green_x, y: config.green_y } };
                 radius = config.lamp_radius;
+                minBrightnessThreshold = config.min_brightness_threshold || 80; // Usa 80 come fallback
 
-                document.getElementById('status').innerText = 'Configurazione esistente caricata.';
+                document.getElementById('status').innerText = 'Nuova configurazione caricata';
             } catch (error) {
+                console.error("Errore caricamento configurazione:", error);
                 document.getElementById('status').innerText = 'Nessuna configurazione trovata. Disegna le aree e salva.';
             } finally {
-                videoStream.src = `http://${window.location.hostname}:8080`;
+                // Indipendentemente dal successo del caricamento, avvia lo stream video
+                // e disegna le aree con i valori correnti (di default o caricati).
+                videoStream.src = 'api/stream';
                 draw();
             }
         }
-        
+    
+        /**
+         * @brief Raccoglie i dati correnti, li valida e li invia al backend per il salvataggio.
+         */
         async function saveConfig() {
-            // Rimuove i dati di risoluzione, non più necessari
+            // Validazione dei dati prima dell'invio per evitare errori.
+            const radiusValue = parseInt(document.getElementById('lamp_radius').value);
+            const thresholdValue = parseInt(document.getElementById('min_brightness_threshold').value);
+            if (isNaN(radiusValue) || radiusValue <= 0) { alert("Errore: Il raggio non è valido."); return; }
+            if (isNaN(thresholdValue) || thresholdValue <= 0) { alert("Errore: La soglia di luminosità non è valida."); return; }
+
+            // Crea l'oggetto dati da inviare, assicurandosi che tutti i valori siano interi.
             const data = {
                 master_roi_x: parseInt(document.getElementById('master_roi_x').value),
                 master_roi_y: parseInt(document.getElementById('master_roi_y').value),
@@ -104,38 +169,53 @@
                 red_x: lights.red.x, red_y: lights.red.y,
                 yellow_x: lights.yellow.x, yellow_y: lights.yellow.y,
                 green_x: lights.green.x, green_y: lights.green.y,
-                lamp_radius: parseInt(document.getElementById('lamp_radius').value)
+                lamp_radius: radiusValue,
+                min_brightness_threshold: thresholdValue
             };
-            
-            const url = `http://${window.location.hostname}:8080/save_config`;
-
+        
             try {
-                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-                alert("Configurazione salvata! Le modifiche sono state applicate.");
-                window.location.reload();
+                // Esegue una richiesta POST all'endpoint del backend C++.
+                // 'JSON.stringify' converte l'oggetto JavaScript in una stringa di testo JSON.
+                await fetch('api/save_config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                alert("Configurazione salvata! La pagina verrà ricaricata per applicare le modifiche.");
+                window.location.reload(); // Ricarica la pagina per rendere effettive le modifiche.
             } catch (error) {
                 console.error("Errore durante il salvataggio:", error);
-                alert('ERRORE: Impossibile salvare la configurazione.');
+                alert('ERRORE: Impossibile salvare la configurazione. Controllare la connessione o i log del server.');
             }
         }
 
-        // --- IL RESTO DELLO SCRIPT (DISEGNO, EVENTI MOUSE) RIMANE INVARIATO ---
+        // --- FUNZIONI DI DISEGNO E AGGIORNAMENTO UI ---
+
+        /**
+         * @brief Funzione centrale di disegno. Pulisce il canvas e ridisegna tutte le aree
+         * (ROI e luci) basandosi sui valori correnti nelle variabili di stato.
+         */
         function draw() {
+            // Pulisce l'intero canvas prima di ogni ridisegno.
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Disegna il rettangolo della ROI principale.
             ctx.strokeStyle = 'blue'; ctx.lineWidth = 2;
             ctx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+            // Disegna i cerchi per le tre luci, usando le coordinate assolute (ROI + coordinate relative della luce).
             const r = radius;
             ctx.strokeStyle = 'red'; ctx.beginPath(); ctx.arc(roi.x + lights.red.x, roi.y + lights.red.y, r, 0, 2 * Math.PI); ctx.stroke();
             ctx.strokeStyle = 'yellow'; ctx.beginPath(); ctx.arc(roi.x + lights.yellow.x, roi.y + lights.yellow.y, r, 0, 2 * Math.PI); ctx.stroke();
             ctx.strokeStyle = 'lime'; ctx.beginPath(); ctx.arc(roi.x + lights.green.x, roi.y + lights.green.y, r, 0, 2 * Math.PI); ctx.stroke();
+            // Aggiorna i campi del modulo per riflettere i valori attuali.
             updateForm();
         }
+
+        /**
+         * @brief Sincronizza i valori delle variabili di stato con i campi del modulo HTML.
+         */
         function updateForm() {
             document.getElementById('master_roi_x').value = Math.round(roi.x);
             document.getElementById('master_roi_y').value = Math.round(roi.y);
             document.getElementById('master_roi_width').value = Math.round(roi.w);
             document.getElementById('master_roi_height').value = Math.round(roi.h);
             document.getElementById('lamp_radius').value = radius;
+            document.getElementById('min_brightness_threshold').value = minBrightnessThreshold;
             document.getElementById('red_x_span').innerText = lights.red.x;
             document.getElementById('red_y_span').innerText = lights.red.y;
             document.getElementById('yellow_x_span').innerText = lights.yellow.x;
@@ -143,6 +223,10 @@
             document.getElementById('green_x_span').innerText = lights.green.x;
             document.getElementById('green_y_span').innerText = lights.green.y;
         }
+        
+        // --- FUNZIONI DI AGGIORNAMENTO DELLO STATO DALL'UI ---
+
+        /** @brief Aggiorna lo stato della ROI quando l'utente modifica i campi di testo. */
         function updateRoiFromInputs() {
             roi.x = parseInt(document.getElementById('master_roi_x').value) || 0;
             roi.y = parseInt(document.getElementById('master_roi_y').value) || 0;
@@ -150,60 +234,117 @@
             roi.h = parseInt(document.getElementById('master_roi_height').value) || 0;
             draw();
         }
+
+        /** @brief Aggiorna il raggio quando l'utente modifica l'input corrispondente. */
         function updateRadiusFromInput() {
-            radius = parseInt(document.getElementById('lamp_radius').value) || 0;
-            draw();
+            const value = parseInt(document.getElementById('lamp_radius').value);
+            if (!isNaN(value) && value > 0) { radius = value; draw(); }
         }
-        toggleCanvasBtn.addEventListener('click', () => {
-            if (canvas.style.display === 'none') { canvas.style.display = 'block'; toggleCanvasBtn.innerText = 'Nascondi Aree'; }
-            else { canvas.style.display = 'none'; toggleCanvasBtn.innerText = 'Mostra Aree'; }
-        });
+        
+        /** @brief Aggiorna la soglia di luminosità. */
+        function updateThresholdFromInput() {
+            const value = parseInt(document.getElementById('min_brightness_threshold').value);
+            if (!isNaN(value) && value > 0) { minBrightnessThreshold = value; }
+        }
+
+        // --- GESTORI DI EVENTI (EVENT HANDLERS) ---
+
+        /** @brief Imposta la modalità di interazione del mouse. */
         function setMode(newMode) {
             mode = newMode;
-            document.getElementById('status').innerText = `Modalità: posiziona luce ${newMode}.`;
+            document.getElementById('status').innerText = `Modalità: Clicca dentro la ROI per posizionare la luce ${newMode}.`;
         }
+
+        // Gestisce la pressione del pulsante del mouse sul canvas.
         canvas.onmousedown = (e) => {
             const rect = canvas.getBoundingClientRect();
+            // --- SCALATURA COORDINATE ---
+            // Calcola un fattore di scala tra le dimensioni reali del canvas nella pagina
+            // e la sua risoluzione interna (1280x720). Questo permette di ottenere coordinate
+            // corrette anche se il player video è ridimensionato.
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
+            // Converte le coordinate del click (relative alla finestra) in coordinate del canvas.
             const x = Math.round((e.clientX - rect.left) * scaleX);
             const y = Math.round((e.clientY - rect.top) * scaleY);
+
             if (mode === 'roi') {
-                isDrawing = true; startX = x; startY = y;
+                isDrawing = true;
+                startX = x; startY = y;
                 roi.x = x; roi.y = y; roi.w = 0; roi.h = 0;
             } else if (['red', 'yellow', 'green'].includes(mode)) {
+                // Controlla se il click è avvenuto all'interno della ROI esistente.
                 if (x >= roi.x && x <= roi.x + roi.w && y >= roi.y && y <= roi.y + roi.h) {
+                    // Salva le coordinate della luce RELATIVE all'angolo in alto a sinistra della ROI.
                     lights[mode].x = x - roi.x;
                     lights[mode].y = y - roi.y;
                     draw();
-                    mode = 'roi';
-                    document.getElementById('status').innerText = 'Posiziona la ROI o clicca un bottone "Posiziona luce".';
-                } else { alert('Posiziona la luce DENTRO la ROI blu.'); }
+                    mode = 'roi'; // Torna alla modalità di default dopo aver posizionato la luce.
+                    document.getElementById('status').innerText = 'Posiziona la regione di interesse o clicca un bottone "Posiziona".';
+                } else {
+                    alert('Posiziona la luce DENTRO l\'area blu della regione di interesse.');
+                }
             }
         };
+
+        // Gestisce il movimento del mouse mentre il pulsante è premuto (trascinamento).
         canvas.onmousemove = (e) => {
-            if (!isDrawing) return;
+            if (!isDrawing || mode !== 'roi') return; // Disegna solo se si è in modalità 'roi'
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = Math.round((e.clientX - rect.left) * scaleX);
             const y = Math.round((e.clientY - rect.top) * scaleY);
+            // Aggiorna larghezza e altezza della ROI in tempo reale.
             roi.w = x - startX;
             roi.h = y - startY;
             draw();
         };
+
+        // Gestisce il rilascio del pulsante del mouse.
         canvas.onmouseup = () => {
+            if (!isDrawing) return;
             isDrawing = false;
+            // Assicura che larghezza e altezza siano sempre positive, correggendo
+            // le coordinate se l'utente ha disegnato da destra a sinistra o dal basso verso l'alto.
             if (roi.w < 0) { roi.x += roi.w; roi.w = Math.abs(roi.w); }
             if (roi.h < 0) { roi.y += roi.h; roi.h = Math.abs(roi.h); }
             draw();
         };
+
+        // --- COLLEGAMENTO DEGLI EVENTI E AVVIO ---
+
+        // Attende che il DOM sia completamente caricato prima di eseguire lo script.
         document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        // Collega i gestori di eventi agli elementi dell'interfaccia.
+        saveBtn.addEventListener('click', saveConfig);
+
+        toggleCanvasBtn.addEventListener('click', () => {
+            canvas.style.display = (canvas.style.display === 'none') ? 'block' : 'none';
+            toggleCanvasBtn.innerText = (canvas.style.display === 'none') ? 'Mostra Aree' : 'Nascondi Aree';
+        });
+
+        // Aggiunge listener per aggiornare il disegno quando si modificano i campi di testo.
         document.getElementById('master_roi_x').addEventListener('input', updateRoiFromInputs);
         document.getElementById('master_roi_y').addEventListener('input', updateRoiFromInputs);
         document.getElementById('master_roi_width').addEventListener('input', updateRoiFromInputs);
         document.getElementById('master_roi_height').addEventListener('input', updateRoiFromInputs);
         document.getElementById('lamp_radius').addEventListener('input', updateRadiusFromInput);
+        document.getElementById('min_brightness_threshold').addEventListener('input', updateThresholdFromInput);
+
+        // Aggiunge il listener per il pulsante fullscreen.
+        fullscreenBtn.addEventListener('click', () => {
+            // Controlla se un elemento è già in fullscreen.
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                // Richiede che il wrapper del video vada in fullscreen.
+                videoWrapper.requestFullscreen().catch(err => {
+                    alert(`Errore nell'attivare lo schermo intero: ${err.message}`);
+                });
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,211 +1,167 @@
-/* style.css */
+/**
+ * Questo file definisce l'aspetto e il layout della pagina web,
+ * organizzando gli elementi in una struttura a due colonne reattiva
+ * e garantendo che i controlli e il video siano chiari e facili da usare.
+ */
 
-/* Stili Globali e Reset Semplice */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+/* --- Stili Globali --- */
+/* Resetta stili di base e imposta un font moderno e pulito per l'intera pagina. */
+body, html {
     margin: 0;
-    padding: 2em;
-    background-color: #f0f2f5;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5; /* Un grigio chiaro per lo sfondo, meno affaticante del bianco puro */
     color: #333;
-    min-height: 100vh;
-    box-sizing: border-box;
-}
-
-h1, h2, h3 {
-    color: #1d2129;
-    margin-top: 0;
-}
-
-p {
-    color: #606770;
-    margin-bottom: 1em;
-}
-
-/* Contenitori Principali (Card Style) */
-.card {
-    background-color: white;
-    padding: 2.5em;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* Stile per Select e Input Generici */
-select, input[type="number"] {
-    font-size: 1em;
-    padding: 0.8em 0.8em;
-    border-radius: 6px;
-    border: 1px solid #dddfe2;
-    width: auto; /* Permette dimensioni individuali */
-    box-sizing: border-box;
-    margin-bottom: 0.5em;
-    min-width: 90px; /* Larghezza minima aumentata */
-}
-
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: auto;
-    opacity: 1;
-}
-
-/* Stile per i Bottoni */
-button {
-    font-size: 1em;
-    padding: 0.8em 1.2em;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s, color 0.2s;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
-}
-
-button.primary {
-    background-color: #1877f2;
-    color: white;
-}
-button.primary:hover {
-    background-color: #166fe5;
-}
-
-button.secondary {
-    background-color: #e4e6eb;
-    color: #333;
-}
-button.secondary:hover {
-    background-color: #d8dbdf;
-}
-
-button:disabled {
-    background-color: #e4e6eb;
-    color: #bcc0c4;
-    cursor: not-allowed;
-}
-
-/* Specifico per index.html */
-.index-page-layout {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-.index-page-layout .card {
-    text-align: center;
-    max-width: 500px;
-    width: 100%;
-}
-.index-page-layout select {
-    margin-bottom: 1.5em;
-    width: 100%;
-}
-
-/* Specifico per config.html */
-.config-page-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 2em;
-    align-items: center;
-}
-.config-controls-card {
-    max-width: 600px;
-    width: 100%;
-    padding: 1.5em;
-}
-.config-controls-card h3 {
-    margin-bottom: 1em;
-    border-bottom: 1px solid #dddfe2;
-    padding-bottom: 0.5em;
-}
-.form-group {
-    margin-bottom: 1.5em;
-}
-input.coords {
-    width: 90px; /* Larghezza aumentata */
-    padding: 0.5em;
-    margin-right: 0.5em;
-}
-span.coords-display {
-    display: inline-block;
-    width: 40px;
-    text-align: right;
-    margin-right: 0.5em;
-    font-weight: bold;
-}
-.light-control {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.8em;
-}
-.light-control button {
-    margin-left: 0.8em;
-    margin-right: 0.8em;
-    padding: 0.6em 1em;
-    font-size: 0.9em;
-}
-.light-control label {
-    min-width: 50px;
-}
-
-#video-stream-wrapper {
-    position: relative;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    background-color: #e4e6eb;
-    max-width: 100%;
-    height: auto;
-}
-#video_stream {
-    display: block;
-    width: 100%;
     height: 100%;
+    /* box-sizing: border-box; garantisce che padding e bordi siano inclusi
+       nella larghezza e altezza totale degli elementi, semplificando i calcoli del layout. */
+    box-sizing: border-box;
 }
-#canvas {
-    position: absolute;
+
+/* --- Layout Principale --- */
+
+/* Contenitore principale che definisce il layout a due colonne usando Flexbox. */
+.main-container {
+    display: flex; /* Attiva il contesto Flexbox */
+    flex-direction: row; /* Dispone gli elementi figli (colonne) in orizzontale */
+    align-items: flex-start; /* Allinea le colonne all'inizio dell'asse trasversale (in alto) */
+    gap: 24px; /* Aggiunge uno spazio uniforme tra le due colonne */
+    padding: 24px;
+    width: 100%;
+    max-width: 1800px; /* Limita la larghezza massima per una leggibilità ottimale su schermi grandi */
+    margin: 0 auto; /* Centra il contenitore orizzontalmente nella pagina */
+    box-sizing: border-box;
+}
+
+/* --- Colonna Sinistra: Player Video --- */
+
+/* Contenitore (wrapper) per il video e il canvas. */
+#video-stream-wrapper {
+    /* flex: 1 1 60%; è una scorciatoia per:
+       - flex-grow: 1 (permette a questo elemento di crescere per occupare lo spazio disponibile)
+       - flex-shrink: 1 (permette di restringersi se lo spazio è poco)
+       - flex-basis: 60% (dimensione di partenza ideale, il 60% della larghezza del contenitore) */
+    flex: 1 1 60%;
+    min-width: 320px; /* Larghezza minima per evitare che diventi troppo piccolo su schermi stretti */
+    position: relative; /* Necessario per posizionare gli elementi figli (video, canvas, bottone) in modo assoluto al suo interno */
+    aspect-ratio: 16 / 9; /* Mantiene il player in formato widescreen (16:9) automaticamente */
+    background-color: #000; /* Sfondo nero visibile durante il caricamento dello stream */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Ombra per dare un effetto di profondità */
+    overflow: hidden; /* Nasconde eventuali contenuti che escono dai bordi arrotondati */
+}
+
+/* Stili per sovrapporre perfettamente il video e il canvas di disegno. */
+#video_stream, #canvas {
+    position: absolute; /* Rimuove gli elementi dal normale flusso e li posiziona rispetto al primo antenato con 'position: relative' (#video-stream-wrapper) */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    cursor: crosshair;
 }
 
-#status {
-    margin-top: 1.5em;
-    font-weight: bold;
-    color: #606770;
-    text-align: center;
+/* Il canvas per il disegno deve stare sopra al video. */
+#canvas {
+    background-color: transparent; /* Sfondo trasparente per vedere il video sottostante */
+    z-index: 10; /* Assicura che il canvas sia visivamente sopra l'elemento <img> dello stream */
+    cursor: crosshair; /* Cambia il cursore per indicare all'utente che può disegnare */
 }
 
-.button-group {
+/* Pulsante per la modalità a schermo intero. */
+#fullscreenBtn {
+    position: absolute; /* Posizionato rispetto al wrapper del video */
+    bottom: 12px;
+    right: 12px;
+    z-index: 20; /* Livello ancora più alto per essere sopra a tutto */
+    background-color: rgba(20, 20, 20, 0.7); /* Sfondo semi-trasparente */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    opacity: 0.7; /* Leggermente trasparente per non essere invasivo */
+    transition: opacity 0.2s, background-color 0.2s; /* Transizione fluida al passaggio del mouse */
+    line-height: 0; /* Utile per centrare l'SVG verticalmente in modo preciso */
     display: flex;
-    flex-wrap: wrap;
-    gap: 1em;
-    margin-top: 2em;
+    align-items: center;
     justify-content: center;
 }
-.button-group button {
-    flex-grow: 1;
-    min-width: 150px;
+#fullscreenBtn:hover {
+    opacity: 1; /* Completamente opaco al passaggio del mouse */
+    background-color: rgba(0, 0, 0, 0.8);
+}
+#fullscreenBtn svg {
+    width: 20px;
+    height: 20px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    body {
-        padding: 1em;
+/* --- Colonna Destra: Pannello di Controllo --- */
+.config-controls-card {
+    flex: 1 1 35%; /* Occupa lo spazio rimanente, ma con una base del 35% */
+    min-width: 400px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    /* Imposta un'altezza massima e abilita lo scrolling verticale se il contenuto è troppo,
+       evitando che il pannello diventi più alto della finestra del browser. */
+    max-height: calc(100vh - 48px); /* 100vh = 100% dell'altezza della finestra; 48px = padding superiore/inferiore */
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Stili interni del pannello per organizzare i controlli */
+.config-controls-card h3 { margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; }
+.form-group { margin-bottom: 20px; }
+
+/* Stile per le righe di controllo delle luci (label, bottone, coordinate) */
+.light-control { display: flex; align-items: center; margin-bottom: 10px; }
+.light-control label { font-weight: 500; width: 60px; }
+.light-control button {
+    padding: 6px 10px;
+    font-size: 0.75em;
+    font-weight: 600;
+    width: 80px;         
+    max-width: 90px;
+    margin-right: 12px;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;       
+}
+
+input.coords { width: 70px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; margin: 0 4px; }
+/* Stile per i display delle coordinate delle luci, con un font monospazio per un allineamento pulito dei numeri */
+span.coords-display { display: inline-block; width: 40px; text-align: right; padding-right: 8px; font-family: monospace; }
+
+/* Gruppo per i pulsanti principali in fondo al pannello */
+.button-group { display: flex; gap: 10px; margin-top: 24px; }
+
+/* Stile generico per i bottoni */
+button { padding: 10px 15px; border-radius: 6px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+button.primary { width: 100%; background-color: #007bff; color: white; }
+button.primary:hover { background-color: #0056b3; }
+button.secondary { width: 100%; background-color: #e9ecef; color: #333; border: 1px solid #ccc; }
+button.secondary:hover { background-color: #d3d9df; }
+
+/* Area di stato per mostrare messaggi all'utente */
+#status { margin-top: 16px; font-size: 13px; color: #666; text-align: center; }
+
+/* --- Media Query per la Reattività --- */
+
+/* Quando la larghezza dello schermo è inferiore a 1024px,
+   il layout passa da due colonne affiancate a una singola colonna. */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column; /* Impila le colonne verticalmente */
+        align-items: center; /* Centra la colonna rispetto alla pagina */
     }
-    .card, .config-controls-card {
-        padding: 1.5em;
-    }
-    .config-page-layout {
-        gap: 1.5em;
-    }
-    .button-group {
-        flex-direction: column;
-        gap: 0.8em;
-    }
-    .button-group button {
+    /* Entrambe le sezioni occupano ora tutta la larghezza disponibile */
+    .config-controls-card, #video-stream-wrapper {
         width: 100%;
+        max-width: 800px; /* Limita la larghezza per non essere troppo estese su tablet */
     }
 }

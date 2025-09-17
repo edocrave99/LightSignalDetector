@@ -15,15 +15,15 @@ ARG BUILD_DIR=/opt/build
 # Prepare build environment
 #-------------------------------------------------------------------------------
 
-# Install build dependencies for cross compiling OpenCV
+# Installa le dipendenze di compilazione: cmake per OpenCV e libglib2.0-dev per il nostro server web
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && apt-get install -y -f --no-install-recommends \
-    cmake && \
+    cmake libglib2.0-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 #-------------------------------------------------------------------------------
-# Build OpenCV libraries
+# Build OpenCV libraries (Questa sezione rimane identica)
 #-------------------------------------------------------------------------------
 
 ARG OPENCV_VERSION=4.10.0
@@ -94,7 +94,7 @@ RUN if [ "$ARCH" = armv7hf ]; then \
     fi
 
 #-------------------------------------------------------------------------------
-# Copy the built library files to application directory
+# Copy the built library files to application directory (Questa sezione rimane identica)
 #-------------------------------------------------------------------------------
 
 WORKDIR /opt/app
@@ -104,7 +104,7 @@ RUN mkdir lib && \
     cp -P ${OPENCV_BUILD_DIR}/lib/lib*.so* ./lib/
 
 #-------------------------------------------------------------------------------
-# Finally build the ACAP application
+# Finally build the ACAP application (Questa sezione rimane identica)
 #-------------------------------------------------------------------------------
 
 RUN . /opt/axis/acapsdk/environment-setup* && acap-build .
