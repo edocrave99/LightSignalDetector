@@ -137,7 +137,7 @@ Una volta salvata la configurazione, lo stato del segnale rilevato in tempo real
 
 Per un'analisi più dettagliata o per scopi di debug, è possibile monitorare i log testuali generati dall'applicazione. Si può accedere ai log in due modi:
 
-- Dall'interfaccia web della telecamera: selezionando l'applicazione e apri la scheda "Log".
+- Dall'interfaccia web della telecamera: nella sezione Apps, cliccare sull'icona con i tre puntini  e selezionare "App log" dal menù.
 - Da terminale (in tempo reale): connettendosi alla telecamera via SSH ed eseguendo il seguente comando per visualizzare un flusso continuo dei log:
     
 ```sh
