@@ -35,10 +35,10 @@ Per utenti Windows o macOS: scaricare l'installer dal [sito ufficiale di Git](ht
 
 Per utenti Linux (Debian/Ubuntu): eseguire i seguenti comandi sul terminale. 
 
-    ```sh
-    sudo apt update
-    sudo apt install git
-    ```
+```sh
+sudo apt update
+sudo apt install git
+```
 
 Docker è la piattaforma che useremo per creare l'ambiente di compilazione. È fondamentale seguire la guida ufficiale per installare Docker Engine (per Linux) o Docker Desktop (per Windows/macOS).
 
@@ -54,23 +54,23 @@ Dopo essersi posizionati nella cartella principale del progetto eseguire il coma
 
 Per architettura armv7hf:
 
-    ```sh
-    docker build --tag <APP_IMAGE> .
-    ```
+```sh
+docker build --tag <APP_IMAGE> .
+```
     
 Per architettura aarch64:
 
-    ```sh
-    docker build --tag <APP_IMAGE> --build-arg ARCH=aarch64 .
-    ```
+```sh
+docker build --tag <APP_IMAGE> --build-arg ARCH=aarch64 .
+```
 
 <APP_IMAGE> è il nome con cui verrà etichettata l'immagine Docker.
 
 L'istruzione seguente copia il risultato dall'immagine del container in una cartella locale chiamata build:
 
-    ```sh
-    docker cp $(docker create <APP_IMAGE>):/opt/app ./build
-    ```
+```sh
+docker cp $(docker create <APP_IMAGE>):/opt/app ./build
+```
 
 Al termine dell'istruzione, sarà presente una nuova cartella "build", all'interno della quale si troverà il file .eap che costituisce l'applicazione. Per poterla installare sulla telecamera sarà necessario seguire i seguenti passaggi:
 
@@ -78,7 +78,7 @@ Al termine dell'istruzione, sarà presente una nuova cartella "build", all'inter
        
 - Il modo più semplice per gli utenti Windows è scaricare e installare lo strumento gratuito [AXIS IP Utility](https://www.axis.com/support/tools/axis-ip-utility) dal sito ufficiale di AXIS. Una volta avviato, il programma rileverà automaticamente tutte le telecamere AXIS presenti sulla rete e mostrerà i loro indirizzi IP.
 
-- Per gli utenti Linux, un metodo efficace per trovare la telecamera è utilizzare nmap, un potente strumento di scansione di rete. Se non si ha nmap sul proprio sistema, è possibile installarlo facilmente da terminale attraverso i seguenti comandi:
+- Per gli utenti Linux, un metodo efficace per trovare la telecamera è utilizzare nmap, un potente strumento di scansione di rete.  Se non si ha nmap sul proprio sistema, è possibile installarlo facilmente da terminale attraverso i seguenti comandi:
 
 ```sh
 sudo apt update
@@ -138,7 +138,6 @@ Una volta salvata la configurazione, lo stato del segnale rilevato in tempo real
 Per un'analisi più dettagliata o per scopi di debug, è possibile monitorare i log testuali generati dall'applicazione. Si può accedere ai log in due modi:
 
 - Dall'interfaccia web della telecamera: selezionando l'applicazione e apri la scheda "Log".
-
 - Da terminale (in tempo reale): connettendosi alla telecamera via SSH ed eseguendo il seguente comando per visualizzare un flusso continuo dei log:
     
 ```sh
