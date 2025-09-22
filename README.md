@@ -1,140 +1,199 @@
-*Copyright (C) 2022, Axis Communications AB, Lund, Sweden. All Rights Reserved.*
+# Rilevamento dello Stato di un Segnale Luminoso in Tempo Reale con Smart Camera (ACAP)
 
-# A guide to building and running OpenCV in an ACAP application
+Questa repository contiene il progetto di tirocinio di Cravegni Edoardo, studente di Ingegneria Informatica all’ Università degli Studi di Firenze, realizzato durante il tirocinio curriculare svolto presso Magenta Srl.
 
-This guide explains how to build OpenCV from source and bundle it for use in an
-ACAP application. The example application runs a background subtraction
-operation on video from the camera for a very simple motion detection
-application to demonstrate how to integrate the broad functionality of OpenCV.
-
-## File structure
+## Contenuto della repository (struttura dei file)
 
 ```sh
-building-opencv
+redpl-acap
 ├── app
-│   ├── example.cpp - The application running OpenCV code
-│   ├── imgprovider.cpp - Convenience functions for VDO
-│   ├── imgprovider.h - imgprovider headers
-│   ├── LICENSE
-│   ├── Makefile - The Makefile specifying how the ACAP should be built
-│   └── manifest.json - A file specifying execution-related options for the ACAP
-├── Dockerfile - Specification of the container used to build the ACAP
-├── README.md
-└── sources.list - Text file specifying repositories for armhf packages
+│ ├── imgprovider.cpp - Implementazione del wrapper per la cattura dei frame video dall'SDK di AXIS
+│ ├── imgprovider.h - File di intestazione per il modulo di acquisizione video
+│ ├── json.hpp - Libreria di terze parti per la gestione dei dati JSON
+│ ├── LICENSE
+│ ├── main.cpp - File sorgente principale che esegue la logica di rilevamento e il server web
+│ ├── Makefile - Specifica come deve essere compilato l'ACAP
+│ └── manifest.json - Specifica le opzioni relative all'esecuzione per l'ACAP
+├── html
+│ ├── index.html - Pagina HTML principale che contiene la struttura dell'interfaccia e la logica JavaScript
+│ ├── style.css - Foglio di stile CSS per la formattazione e l'aspetto grafico dell'interfaccia web
+├── Dockerfile - File di istruzioni per Docker che definisce l'ambiente di cross-compilazione
+└── README.md
 ```
 
-## Instructions
+## Predisposizione dell'ambiente di sviluppo
 
-### Quick start
+Il progetto è stato sviluppato per la piattaforma ACAP (AXIS Camera Application Platform) e utilizza un ambiente di build basato su Docker per la cross-compilazione del codice. L'applicazione è stata sviluppata e testata su una telecamera della serie AXIS M10 Box Camera. È tuttavia compatibile con la maggior parte dei dispositivi AXIS che supportano la piattaforma ACAP. Per gli sviluppatori che non dispongono di un dispositivo fisico, AXIS mette a disposizione il [Virtual Loan Tool (VLT)](https://www.axis.com/partner_pages/adp_virtual_loan_tool/common#/home), un servizio che permette di noleggiare e accedere a telecamere reali da remoto. 
 
-> [!NOTE]
->
-> Depending on the network your local build machine is connected to, you may need to add proxy
-> settings for Docker. See
-> [Proxy in build time](https://developer.axis.com/acap/develop/proxy/#proxy-in-build-time).
+Sebbene sul sito ufficiale di AXIS sia presente una guida completa, i passaggi essenziali per l'installazione dei prerequisiti e la compilazione del pacchetto finale sono riportati di seguito.
 
-1. Standing in your working directory run the following commands:
+### Requisiti Software
 
-   On armv7hf architecture
+Git è un sistema di controllo di versione necessario per scaricare il codice sorgente.
 
-   ```sh
-   docker build --tag <APP_IMAGE> .
-   ```
+    Per utenti Windows o macOS:
+    Scaricare l'installer dal [sito ufficiale di Git](https://git-scm.com/downloads).
 
-   On aarch64 architecture
+    Per utenti Linux (Debian/Ubuntu):
+    Eseguire i seguenti comandi sul terminale. 
 
-   ```sh
-   docker build --tag <APP_IMAGE> --build-arg ARCH=aarch64 .
-   ```
+    ```sh
+    sudo apt update
+    sudo apt install git
+    ```
 
-   <APP_IMAGE> is the name to tag the image with, e.g., opencv-app:1.0
+Docker è la piattaforma che useremo per creare l'ambiente di compilazione. È fondamentale seguire la guida ufficiale per installare Docker Engine (per Linux) o Docker Desktop (per Windows/macOS).
 
-   Copy the result from the container image to a local directory build:
+    Per utenti Windows/macOS: [Install Docker Desktop on Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-   ```sh
-   docker cp $(docker create <APP_IMAGE>):/opt/app ./build
-   ```
+    Per Linux: [Install Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 
-2. You should now have a `build` directory. In it is the `.eap` file that is
-   your application.  Enable the `Allow unsigned apps` toggle and upload the
-   application to your camera.
-3. Start the application. In the `App log`, a printout from the application
-   should be seen. The same log with continuous scroll can be seen by SSHing to
-   the camera and running `journalctl -f`. The printout shows whether the
-   application has detected movement in the image or not:
+Nota per utenti Linux: Dopo l'installazione, è fortemente consigliato seguire i [passaggi post-installazione](https://docs.docker.com/engine/install/linux-postinstall/) per usare Docker senza sudo.
 
-   ```sh
-   opencv_app[0]: starting opencv_app
-   opencv_app[2211]: Running OpenCV example with VDO as video source
-   opencv_app[2211]: Creating VDO image provider and creating stream 1024 x 576
-   opencv_app[2211]: Dump of vdo stream settings map =====
-   opencv_app[2211]: chooseStreamResolution: We select stream w/h=1024 x 576 based on VDO channel info.
-   opencv_app[2211]: Start fetching video frames from VDO
-   opencv_app[2211]: Motion detected: YES
-   opencv_app[2211]: Motion detected: YES
-   ```
+## Compilazione ed Installazione dell'applicazione
 
-### Walk-through of application
+Dopo essersi posizionati nella cartella principale del progetto eseguire il comando di build. Scegliere il comando corretto in base all'architettura del proprio dispositivo AXIS.
 
-The [Dockerfile](Dockerfile) suits as a good overview of the build process;
+Per architettura armv7hf:
 
-1. First the OpenCV libraries are built with the help of CMake and the ACAP SDK
-   libraries, especially `libc` and `libstdc++`.
-2. The OpenCV libraries are then copied to the application directory under
-   `lib`.
-3. Finally the ACAP application is built with the build instructions in the
-   [Makefile](app/Makefile) where it links to and bundles the OpenCV libraries
-to the application.
+    ```sh
+    docker build --tag <APP_IMAGE> .
+    ```
+    
+Per architettura aarch64:
 
-#### Building OpenCV libraries
+    ```sh
+    docker build --tag <APP_IMAGE> --build-arg ARCH=aarch64 .
+    ```
 
-OpenCV libraries are built with CMake and some special steps are made to get
-a correct build:
+<APP_IMAGE> è il nome con cui verrà etichettata l'immagine Docker.
 
-- The ACAP SDK is sourced to get cross compilation variables like `CC` and
-  `CXX` which contains the path to the SDK libraries.
-- To get correct cross compilation settings, `CMAKE_TOOLCHAIN_FILE` is set to the
-  architecture specific file provided by OpenCV.
-- CMake picks up environment variables like `CC` and `CXX` but seems to not
-  work in combination with `CMAKE_TOOLCHAIN_FILE`. To get CMake to pick up the
-cross compiler and SDK library path, these variables are split and set
-explicitly in `CMAKE_{C,CXX}_COMPILER` and `CMAKE_{C,CXX}_FLAGS` respectively.
+L'istruzione seguente copia il risultato dall'immagine del container in una cartella locale chiamata build:
 
-Other noteworthy options are the ones related to `NEON` and `VFPV3`, which are
-optimizations available for the platform that can greatly speed up CPU
-operations. This is only necessary for armv7hf, in aarch64 these options are
-implicitly present.
+    ```sh
+    docker cp $(docker create <APP_IMAGE>):/opt/app ./build
+    ```
 
-The other configuration options are there to make the OpenCV installation quite
-stripped of functionality not needed for the example application. However, you
-will likely have to change these options to accommodate your custom
-application.
+Al termine dell'istruzione, sarà presente una nuova cartella "build", all'interno della quale si troverà il file .eap che costituisce l'applicazione. Per poterla installare sulla telecamera sarà necessario seguire i seguenti passaggi:
 
-#### Building ACAP application
+    1. Reperire l'indirizzo IP del proprio dispositivo. Ecco i metodi più comuni per trovarlo:
+       
+       - Il modo più semplice per gli utenti Windows è scaricare e installare lo strumento gratuito [AXIS IP Utility](https://www.axis.com/support/tools/axis-ip-utility) dal sito ufficiale di AXIS. Una volta avviato, il programma rileverà automaticamente tutte le telecamere AXIS presenti sulla rete e mostrerà i loro indirizzi IP.
 
-The build instructions of the ACAP application are found in the
-[Makefile](app/Makefile).  Note the use of the option
-`-Wl,--no-as-needed,-rpath,'$$ORIGIN/lib'` which will set the *runtime share
-library search path* and is where the bundled libraries will be found when the
-application is installed on a device.
+       - Per gli utenti Linux, un metodo efficace per trovare la telecamera è utilizzare nmap, un potente strumento di scansione di rete.
+       Se non si ha nmap sul proprio sistema, è possibile installarlo facilmente da terminale attraverso i seguenti comandi:
 
-#### ACAP application using OpenCV
+       ```sh
+       sudo apt update
+       sudo apt install nmap
+       ```
 
-The example application source code using OpenCV can be seen in
-[example.cpp](app/example.cpp). It is a C++ application which uses the OpenCV
-MOG2 background subtraction and noise filtering to detect changes in the image
-in order to perform motion detection.
+         Una volta completata l'installazione, puoi lanciare una scansione per trovare i dispositivi sulla rete che rispondono sulla porta RTSP (554) e tentare di scoprirne l'URL dello stream. Esegui il seguente comando, adattando la sottorete se necessario:
 
-The code is documented to give a clear understanding of what steps are needed
-to grab frames from the camera and perform operations on them.
+       ```sh
+       nmap --script rtsp-url-brute -p 554 192.168.1.0/24
+       ```
 
-The output of the application can be seen through the `App log` or by running
-`journalctl -f` while connected through SSH to the device.
+         L'output del comando elencherà gli indirizzi IP dei dispositivi che hanno risposto alla scansione; tra questi ci sarà quello della telecamera.
 
-## License
+      Per i dispositivi noleggiati tramite il servizio VLT, l'indirizzo IP viene fornito direttamente da AXIS al momento del noleggio.
 
-**[Apache License 2.0](../LICENSE)**
 
-## References
+    2. Accedere all'interfaccia web della telecamera.
 
-- <https://docs.opencv.org>
+    3. Andare alla sezione "Apps" 
+
+    ![Screenshot del menù](tutorial_images/apps.png)
+    
+    4. Assicurasi che l'opzione "Allow unsigned apps" (Consenti app prive di firma) sia attiva. Questo è necessario per installare applicazioni in fase di sviluppo.
+
+    ![Screenshot dell'interfaccia Apps](tutorial_images/app_prive_di_firma.png)
+
+    5. Cliccare su "Add app" e caricare il file Light_Signal_Detector_1_0_0_armv7hf.eap (Light_Signal_Detector_1_0_0_aarch64.eap in caso si abbia un dispostivo con architettura aarch64) prensente all'interno della cartella "build".
+
+    ![Screenshot di aggiunta di un'app](tutorial_images/aggiungi_app.png)
+
+## Funzionamento dell'Applicazione
+
+
+### Configurazione
+
+Una volta che l'applicazione è installata e in esecuzione sulla telecamera, è necessario configurarla:
+
+    1. Nell'elenco delle applicazioni installate, trova "Traffic Light Detector" e clicca sul bottone "Open" per avviare la pagina di configurazione.
+
+    ![Screenshot di apertura](tutorial_images/apri.png)
+
+    2. Clicca e trascina il mouse sul video per disegnare un rettangolo blu che includa l'intero segnale luminoso che vuoi monitorare.
+
+    3. Posiziona le Luci: Per ogni colore (Rosso, Giallo, Verde), clicca sul rispettivo bottone "Posiziona" e successivamente clicca sul video, all'interno della ROI, nel punto esatto in cui si trova la luce corrispondente. Le coordinate verranno popolate automaticamente.
+
+    4. Salva la Configurazione: Clicca sul bottone "Salva Configurazione". Le impostazioni verranno inviate al backend C++ e l'applicazione inizierà il processo di rilevamento.
+
+Questa è l'interfaccia utente per la configurazione:
+
+![Screenshot interfaccia applicazione](tutorial_images/webui.png)    
+
+### Utilizzo
+
+Una volta salvata la configurazione, lo stato del segnale rilevato in tempo reale verrà mostrato tramite l'indicatore circolare colorato in alto a sinistra nel flusso video.
+
+Per un'analisi più dettagliata o per scopi di debug, è possibile monitorare i log testuali generati dall'applicazione. Si può accedere ai log in due modi:
+
+    - Dall'interfaccia web della telecamera: selezionando l'applicazione e apri la scheda "Log".
+
+    - Da terminale (in tempo reale): connettendosi alla telecamera via SSH ed eseguendo il seguente comando per visualizzare un flusso continuo dei log:
+    
+         ```sh
+         journalctl -f
+         ```
+
+      I log iniziali confermano il corretto avvio dell'applicazione e mostrano i parametri con cui viene inizializzato lo stream video:
+
+         ```sh
+         tld[8878]: Avvio dello stream a risoluzione fissa: 1280x720
+         tld[8878]: Server GIO in ascolto su localhost:8080
+         tld[8878]: Dump of vdo stream settings map =====
+         tld[8878]: 'buffer.strategy': <uint32 3>
+         tld[8878]: 'channel'--------: <uint32 1>
+         tld[8878]: 'format'---------: <uint32 3>
+         tld[8878]: 'height'---------: <uint32 720>
+         tld[8878]: 'width'----------: <uint32 1280>
+         ```
+      Una volta salvata una configurazione valida tramite l'interfaccia web, l'applicazione inizia l'analisi. I log mostrano in tempo reale l'output dell'algoritmo di rilevamento:
+
+         ```sh
+         tld[8878]: Richiesta gestita dal thread: POST /local/tld/api/save_config HTTP/1.1
+         tld[8878]: Luminosita R:45.1, Y:30.2, G:188.7 con soglia 80 -> Stato = GREEN
+         tld[8878]: Luminosita R:192.5, Y:40.6, G:48.2 con soglia 80 -> Stato = RED
+         ```
+
+## Dettagli Tecnici e Implementativi
+
+Questa sezione fornisce un'analisi più approfondita del processo di build e della logica interna dell'applicazione.
+
+### Processo di Build
+
+Il Dockerfile definisce un processo di build automatizzato che gestisce tutte le dipendenze:
+
+    Preparazione Ambiente: Vengono installate le librerie di sistema necessarie, come libglib2.0-dev, che fornisce le funzioni GIO per il server web.
+
+    Compilazione Dipendenze Esterne: Le librerie OpenCV vengono compilate da sorgente, ottimizzate per l'architettura ARM della telecamera.
+
+    Compilazione Applicazione: Infine, viene compilata l'applicazione principale. Il Makefile si occupa di collegare (linking) il codice C++ sia alle librerie di sistema (GIO) sia a quelle esterne (OpenCV).
+
+### Gestione delle Dipendenze a Runtime
+
+Per assicurare che l'applicazione, una volta installata sulla telecamera, trovi le librerie OpenCV che abbiamo compilato, il Makefile utilizza l'opzione del linker -rpath,'$$ORIGIN/lib'. Questa istruzione dice all'eseguibile di cercare le librerie necessarie (.so) in una sottocartella chiamata lib rispetto alla propria posizione.
+
+### Logica dell'Applicazione 
+
+Il codice sorgente principale (main.cpp) gestisce l'intera logica dell'applicazione in modo multi-thread:
+
+    Configurazione: Utilizza la libreria header-only json.hpp per leggere e scrivere i parametri di configurazione (come le coordinate della ROI) da un file config.json.
+
+    Acquisizione Video: Usa le API VDO dell'SDK per catturare i frame dalla telecamera.
+
+    Analisi Immagine: Applica un algoritmo di computer vision (OpenCV) basato sulla luminosità per determinare lo stato del segnale luminoso.
+
+    Web Server: Gestisce un'interfaccia web di configurazione e uno stream video MJPEG tramite un server HTTP basato su GIO.

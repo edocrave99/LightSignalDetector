@@ -1,4 +1,20 @@
 /**
+ * Copyright (C) 2021 Axis Communications AB, Lund, Sweden
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
  * Questo programma acquisisce un flusso video da una telecamera Axis, analizza
  * una specifica regione (ROI) per determinare quale delle tre luci di un semaforo
  * (rossa, gialla, verde) è accesa, e fornisce un'interfaccia web per
@@ -13,7 +29,6 @@
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #include <opencv2/imgproc.hpp>   // Funzioni di elaborazione immagini (es. cvtColor, circle, mean)
 #pragma GCC diagnostic pop
-
 #include <opencv2/video.hpp>      // Funzioni video di OpenCV
 #include <opencv2/imgcodecs.hpp>  // Funzioni per codificare e decodificare immagini (es. imencode)
 #include <syslog.h>               // Per scrivere messaggi nel log di sistema della telecamera

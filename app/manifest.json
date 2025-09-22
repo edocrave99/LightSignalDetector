@@ -2,11 +2,10 @@
     "schemaVersion": "1.7.4",
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Traffic Light Detector",
+            "friendlyName": "Light Signal Detector",
             "appName": "tld",
-            "vendor": "Axis Communications",
+            "vendor": "Cravegni Edoardo",
             "embeddedSdkVersion": "3.0",
-            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0"
         },
